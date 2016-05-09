@@ -251,7 +251,21 @@ void FbWindow::updateBackground(bool only_if_alpha) {
 }
 
 void FbWindow::setBorderColor(const FbTk::Color &border_color) {
-    XSetWindowBorder(display(), m_window, border_color.pixel());
+   // richardgv: Ugly hack to decide the pixel value based on the colormap of
+   // the window {{{
+   unsigned long pixel = border_color.pixel();
+   XWindowAttributes attr;
+   if (XGetWindowAttributes(display(), m_window, &attr)
+           && attr.colormap != DefaultColormap(display(), m_screen_num)) {
+       XColor color;
+       color.red = border_color.red() * 0x101;
+       color.green = border_color.green() * 0x101;
+       color.blue = border_color.blue() * 0x101;
+       if (XAllocColor(display(), attr.colormap, &color))
+           pixel = color.pixel;
+   }
+   // }}}
+    XSetWindowBorder(display(), m_window, pixel);
     m_border_color = border_color.pixel();
 }
 
